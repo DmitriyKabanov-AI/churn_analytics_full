@@ -110,6 +110,9 @@ Retention heatmap (из retention_cohorts)
 
 LTV по когортам (из ltv)
 
+<img width="1920" height="972" alt="Example" src="https://github.com/user-attachments/assets/9ad236c7-8bcd-4da9-a397-9f741486d530" />
+
+
 Вы можете редактировать эти дашборды или создавать свои – изменения сохранятся в томе grafana_data.
 
 ### 📊 SQL-запросы для Grafana
