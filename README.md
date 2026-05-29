@@ -10,6 +10,8 @@
 git clone https://github.com/ваш-репозиторий/churn_analytics_full.git
 cd churn_analytics_full
 docker-compose up --build
+```
+
 После завершения сборки:
 
 Grafana → http://localhost:3001 (логин/пароль admin/admin)
@@ -69,12 +71,15 @@ Retention heatmap	SELECT cohort_month::date as time, months_diff as metric, rete
 RFM-сегменты	SELECT rfm_score, COUNT(*) as users FROM rfm GROUP BY rfm_score ORDER BY users DESC
 LTV по когортам	SELECT purchase_month::date as time, cohort_month, ltv FROM ltv ORDER BY purchase_month, cohort_month
 🧪 Тестирование
+```bash
 Python‑тесты (pytest)
-bash
 pytest tests/python/
+```
+
 SQL‑тесты (схема и функции)
-bash
+```bash
 docker exec -i churn_postgres psql -U churn_user -d churn_db < tests/sql/test_schema.sql
+```
 (транзакция откатывается — данные не изменяются)
 
 🛠 Технологии
@@ -89,7 +94,7 @@ Nginx – раздача статического дашборда
 Grafana – дополнительная визуализация (опционально)
 
 📁 Структура проекта и описание папок / файлов
-text
+```
 churn_analytics_full/
 ├── analytics/               # Python‑скрипты для построения графиков
 │   ├── chart1_*.py … chart13_*.py   # каждый скрипт строит один график (получает данные из БД)
@@ -130,7 +135,9 @@ churn_analytics_full/
 ├── .dockerignore            # Исключения для Docker‑образа
 ├── .gitignore               # Исключения для Git
 └── README.md                # Этот файл
+```
 Пояснение ключевых элементов
+
 analytics/db_utils.py – подключается к БД через переменные окружения (DB_HOST, DB_PORT...). Внутри Docker подставляются значения из docker-compose.yml, локально – значения по умолчанию (localhost:5435).
 
 scripts/build_dashboard.py – запускает все chartX.py, затем читает сгенерированные JSON, очищает шаблон template/index.html от синтетических графиков и вставляет реальные. Результат – output/index.html.
