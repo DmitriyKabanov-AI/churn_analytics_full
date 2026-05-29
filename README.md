@@ -7,7 +7,7 @@
 ## 🚀 Быстрый старт
 
 ```bash
-git clone https://github.com/ваш-репозиторий/churn_analytics_full.git
+git clone https://github.com/DmitriyKabanov-AI/churn_analytics_full.git
 cd churn_analytics_full
 docker-compose up --build
 ```
