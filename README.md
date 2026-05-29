@@ -112,14 +112,41 @@ LTV по когортам (из ltv)
 
 Вы можете редактировать эти дашборды или создавать свои – изменения сохранятся в томе grafana_data.
 
-SQL‑запросы, используемые в дашбордах Grafana
-График	SQL‑запрос
-DAU	SELECT date::timestamp as time, dau as value FROM daily_metrics ORDER BY date
-ARPU	SELECT date::timestamp as time, arpu as value FROM daily_metrics ORDER BY date
-Conversion to Purchase	SELECT date::timestamp as time, conversion_to_purchase as value FROM daily_metrics ORDER BY date
-Retention heatmap	SELECT cohort_month::date as time, months_diff as metric, retention_rate as value FROM retention_cohorts ORDER BY cohort_month, months_diff
-RFM-сегменты	SELECT rfm_score, COUNT(*) as users FROM rfm GROUP BY rfm_score ORDER BY users DESC
-LTV по когортам	SELECT purchase_month::date as time, cohort_month, ltv FROM ltv ORDER BY purchase_month, cohort_month
+### 📊 SQL-запросы для Grafana
+
+```sql
+-- DAU (Daily Active Users)
+SELECT date::timestamp as time, dau as value 
+FROM daily_metrics 
+ORDER BY date;
+
+-- ARPU (Average Revenue Per User)
+SELECT date::timestamp as time, arpu as value 
+FROM daily_metrics 
+ORDER BY date;
+
+-- Conversion to Purchase
+SELECT date::timestamp as time, conversion_to_purchase as value 
+FROM daily_metrics 
+ORDER BY date;
+
+-- Retention Heatmap
+SELECT cohort_month::date as time, months_diff as metric, retention_rate as value 
+FROM retention_cohorts 
+ORDER BY cohort_month, months_diff;
+
+-- RFM-сегменты
+SELECT rfm_score, COUNT(*) as users 
+FROM rfm 
+GROUP BY rfm_score 
+ORDER BY users DESC;
+
+-- LTV по когортам
+SELECT purchase_month::date as time, cohort_month, ltv 
+FROM ltv 
+ORDER BY purchase_month, cohort_month;
+```
+
 🧪 Тестирование
 ```bash
 Python‑тесты (pytest)
