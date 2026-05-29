@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Analytics Dashboard</title>
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+<style>
+  :root {
+    --bg-primary: #0f1419;
+    --bg-secondary: #161b22;
+    --bg-tertiary: #1c2128;
+    --bg-card: #1a1f27;
+    --border: #2a313c;
+    --border-hover: #3a4250;
+    --text-primary: #e6edf3;
+    --text-secondary: #8b949e;
+    --text-muted: #6e7681;
+    --accent: #4f8cff;
+    --accent-hover: #6ba0ff;
+    --accent-glow: rgba(79, 140, 255, 0.15);
+    --success: #3fb950;
+    --warning: #d29922;
+    --danger: #f85149;
+    --sidebar-width: 280px;
+    --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    --radius: 10px;
+    --shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", Roboto, sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .app { display: flex; min-height: 100vh; }
+
+  /* Sidebar */
+  .sidebar {
+    width: var(--sidebar-width);
+    background: var(--bg-secondary);
+    border-right: 1px solid var(--border);
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    z-index: 10;
+  }
+
+  .sidebar-header {
+    padding: 22px 22px 18px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+
+  .logo-mark {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, var(--accent), #8b5cf6);
+    display: grid; place-items: center;
+    font-weight: 800;
+    color: white;
+    box-shadow: 0 4px 12px var(--accent-glow);
+  }
+
+  .sidebar-subtitle {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 4px;
+    margin-left: 44px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .nav-section {
+    padding: 16px 12px;
+    overflow-y: auto;
+    flex: 1;
+  }
+
+  .nav-section::-webkit-scrollbar { width: 6px; }
+  .nav-section::-webkit-scrollbar-track { background: transparent; }
+  .nav-section::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  .nav-section::-webkit-scrollbar-thumb:hover { background: var(--border-hover); }
+
+  .nav-group-title {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    padding: 12px 12px 8px;
+    font-weight: 600;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    margin: 2px 0;
+    border-radius: 8px;
+    cursor: pointer;
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 500;
+    transition: all var(--transition);
+    border: 1px solid transparent;
+    user-select: none;
+  }
+
+  .nav-item:hover {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    transform: translateX(2px);
+  }
+
+  .nav-item.active {
+    background: var(--accent-glow);
+    color: var(--accent-hover);
+    border-color: rgba(79, 140, 255, 0.25);
+  }
+
+  .nav-item-num {
+    width: 22px; height: 22px;
+    border-radius: 6px;
+    background: var(--bg-tertiary);
+    display: grid; place-items: center;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    flex-shrink: 0;
+    transition: all var(--transition);
+  }
+
+  .nav-item:hover .nav-item-num { background: var(--bg-primary); color: var(--text-primary); }
+  .nav-item.active .nav-item-num { background: var(--accent); color: white; }
+
+  .sidebar-footer {
+    padding: 14px 22px;
+    border-top: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  /* Main */
+  .main {
+    flex: 1;
+    margin-left: var(--sidebar-width);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  .topbar {
+    padding: 18px 32px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(15, 20, 25, 0.85);
+    backdrop-filter: blur(10px);
+    position: sticky; top: 0;
+    z-index: 5;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .breadcrumb {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .breadcrumb span { color: var(--text-primary); font-weight: 500; }
+
+  .top-actions { display: flex; gap: 8px; }
+  .pill {
+    padding: 6px 12px;
+    border-radius: 20px;
+    background: var(--bg-tertiary);
+    font-size: 11px;
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .pill .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--success);
+    box-shadow: 0 0 8px var(--success);
+  }
+
+  .content {
+    padding: 28px 32px 40px;
+  }
+
+  /* Chart sections */
+  .chart-section {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    animation: fadeIn 0.35s ease;
+  }
+
+  .chart-section.hidden { display: none; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .chart-header {
+    padding: 20px 24px 14px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .chart-title-block h2 {
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin-bottom: 4px;
+  }
+
+  .chart-title-block p {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  .chart-tag {
+    padding: 4px 10px;
+    border-radius: 6px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--text-secondary);
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  .chart-body {
+    padding: 16px 16px 12px;
+    min-height: 460px;
+  }
+
+  .plot-container {
+    width: 100%;
+    min-height: 440px;
+  }
+
+  /* Metrics table */
+  .metrics-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 8px;
+    font-size: 13px;
+  }
+  .metrics-table th, .metrics-table td {
+    padding: 14px 18px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  .metrics-table th {
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .metrics-table tr:hover td { background: rgba(79, 140, 255, 0.04); }
+  .metrics-table td.model { font-weight: 600; color: var(--text-primary); }
+  .metric-bar {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .metric-bar-fill {
+    width: 60px; height: 4px;
+    background: var(--bg-tertiary);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .metric-bar-fill > div {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), #8b5cf6);
+    border-radius: 2px;
+  }
+
+  @media (max-width: 900px) {
+    :root { --sidebar-width: 100%; }
+    .sidebar { position: relative; height: auto; max-height: 280px; }
+    .main { margin-left: 0; }
+    .app { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="logo">
+        <div class="logo-mark">A</div>
+        <div>
+          Analytics Hub
+          <div class="sidebar-subtitle">Customer Insights</div>
+        </div>
+      </div>
+    </div>
+
+    <nav class="nav-section" id="nav-menu">
+      <div class="nav-group-title">EDA & Distributions</div>
+      <div class="nav-item active" data-target="chart-1-income-vs-churn"><span class="nav-item-num">1</span>Income vs Churn</div>
+      <div class="nav-item" data-target="chart-2-plan-vs-churn"><span class="nav-item-num">2</span>Plan vs Churn</div>
+      <div class="nav-item" data-target="chart-3-income-distribution"><span class="nav-item-num">3</span>Распределение дохода</div>
+      <div class="nav-item" data-target="chart-4-user-activity"><span class="nav-item-num">4</span>Активность пользователей</div>
+      <div class="nav-item" data-target="chart-5-correlation-matrix"><span class="nav-item-num">5</span>Корреляционная матрица</div>
+      <div class="nav-item" data-target="chart-6-events-vs-churn"><span class="nav-item-num">6</span>Events vs Churn</div>
+
+      <div class="nav-group-title">Model Quality</div>
+      <div class="nav-item" data-target="chart-7-roc-curve"><span class="nav-item-num">7</span>ROC‑кривая</div>
+      <div class="nav-item" data-target="chart-8-feature-importance"><span class="nav-item-num">8</span>Важность признаков</div>
+      <div class="nav-item" data-target="chart-9-confusion-matrix"><span class="nav-item-num">9</span>Confusion Matrix</div>
+      <div class="nav-item" data-target="chart-10-model-metrics"><span class="nav-item-num">10</span>Метрики моделей</div>
+
+      <div class="nav-group-title">Business Metrics</div>
+      <div class="nav-item" data-target="chart-11-cumulative-ltv"><span class="nav-item-num">11</span>Кумулятивный LTV</div>
+      <div class="nav-item" data-target="chart-12-rolling-arpu"><span class="nav-item-num">12</span>Скользящее среднее ARPU</div>
+      <div class="nav-item" data-target="chart-13-churn-dynamics"><span class="nav-item-num">13</span>Динамика оттока</div>
+    </nav>
+
+    <div class="sidebar-footer">
+      v1.0.0 · Built with Plotly
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div class="breadcrumb">Dashboard / <span id="current-chart">Income vs Churn</span></div>
+      <div class="top-actions">
+        <div class="pill"><span class="dot"></span>Live</div>
+        <div class="pill">13 charts</div>
+      </div>
+    </div>
+
+    <div class="content">
+      <!-- 1. Income vs Churn -->
+      <section class="chart-section" id="chart-1-income-vs-churn">
+        <div class="chart-header">
+          <div class="chart-title-block">
+            <h2>Income vs Churn</h2>
+            <p>Распределение дохода клиентов в разрезе оттока</p>
+          </div>
+          <div class="chart-tag">Box‑plot · Доход (income)</div>
+        </div>
+        <div class="chart-body">
+          <div id="plot-1" class="plot-container"></div>
+          <!-- PYTHON_INJECT_CHART_1_HERE -->
+        </div>
+      </section>
+
+      <!-- 2. Plan vs Churn -->
+      <section class="chart-section hidden" id="chart-2-plan-vs-churn">
+        <div class="chart-header">
+          <div class="chart-title-block">
+            <h2>Plan vs Churn</h2>
+            <p>Соотношение оттока по тарифным планам</p>
+          </div>
+          <div class="chart-tag">Stacked bar · Тарифный план</div>
+        </div>
+        <div class="chart-body">
+          <div id="plot-2" class="plot-container"></div>
+          <!-- PYTHON_INJECT_CHART_2_HERE -->
+        </div>
+      </section>
+
+      <!-- 3. Income distribution -->
+      <section class="chart-section hidden" id="chart-3-income-distribution">
+        <div class="chart-header">
+          <div class="chart-title-block">
+            <h2>Распределение дохода</h2>
+            <p>Гистограмма дохода клиентов с наложенной KDE</p>
+          </div>
+          <div class="chart-tag">Гистограмма + KDE · Доход</div>
+        </div>
+        <div class="chart-body">
+          <div id="plot-3" class="plot-container"></div>
+          <!-- PYTHON_INJECT_CHART_3_HERE -->
+        </div>
+      </section>
+
+      <!-- 4. User activity -->
+      <section class="chart-section hidden" id="chart-4-user-activity">
+        <div class="chart-header">
+          <div class="chart-title-block">
+            <h2>Активность пользователей</h2>
+            <p>Распределение числа событий (log scale)</p>
+          </div>
+          <div class="chart-tag">Гистограмма (log) · События</div>
+        </div>
+        <div class="chart-body">
+          <div id="plot-4" class="plot-container"></div>
+          <!-- PYTHON_INJECT_CHART_4_HERE -->
+        </div>
+      </section>
+
+      <!-- 5. Correlation matrix -->
+      <section class="chart-section hidden" id="chart-5-correlation-matrix">
+        <div class="chart-header">
+          <div class="chart-title-block">
+            <h2>Корреляционная матрица</h2>
+            <p>Связи между ключевыми числовыми признаками</p>
+          </div>
+          <div class="chart-tag">Heatmap · income · events · RFM</div>
+        </div>
+        <div class="chart-body">
+          <div id="plot-5" class="plot-container"></div>
+          <!-- PYTHON_INJECT_CHART_5_HERE -->
+        </div>
+      </section>
+
+      <!-- 6. Events vs Churn -->
+      <section class="chart-section hidden" id="chart-6-events-vs-churn">
+        <div class="chart-header">
+          <div class="chart-title-block">
+            <h2>Events vs Churn</h2>
+            <p>Количество событий пользователей по статусу оттока</p>
+          </div>
+          <div class="chart-tag">Box‑plot · Количество событий</div>
+        </div>
+        <div class="chart-body">
+          <div id="plot-6" class="plot-container"></div>
+          <!-- PYTHON_INJECT_CHART_6_HERE -->
+        </div>
+      </section>
+
+      <!-- 7. ROC curve -->
+      <section class="chart-section hidden" id="chart-7-roc-curve">
+        <div class="chart-header">
+          <div class="chart-title-block">
+            <h2>ROC‑кривая</h2>
+            <p>Сравнение моделей: TPR vs FPR (AUC)</p>
+          </div>
+          <div class="chart-tag">Линия · Качество моделей</div>
+        </div>
+        <div class="chart-body">
+          <div id="plot-7" class="plot-container"></div>
+          <!-- PYTHON_INJECT_CHART_7_HERE -->
+        </div>
+      </section>
+
+      <!-- 8. Feature importance -->
+      <section class="chart-section hidden" id="chart-8-feature-importance">
+        <div class="chart-header">
+          <div class="chart-title-block">
+            <h2>Важность признаков</h2>
+            <p>Feature importance Random Forest</p>
+          </div>
+          <div class="chart-tag">Bar (горизонт.) · RF importance</div>
+        </div>
+        <div class="chart-body">
+          <div id="plot-8" class="plot-container"></div>
+          <!-- PYTHON_INJECT_CHART_8_HERE -->
+        </div>
+      </section>
+
+      <!-- 9. Confusion matrix -->
+      <section class="chart-section hidden" id="chart-9-confusion-matrix">
+        <div class="chart-header">
+          <div class="chart-title-block">
+            <h2>Confusion Matrix</h2>
+            <p>Ошибки классификации (TP/TN/FP/FN)</p>
+          </div>
+          <div class="chart-tag">Heatmap · Ошибки</div>
+        </div>
+        <div class="chart-body">
+          <div id="plot-9" class="plot-container"></div>
+          <!-- PYTHON_INJECT_CHART_9_HERE -->
+        </div>
+      </section>
+
+      <!-- 10. Model metrics table -->
+      <section class="chart-section hidden" id="chart-10-model-metrics">
+        <div class="chart-header">
+          <div class="chart-title-block">
+            <h2>Метрики моделей</h2>
+            <p>Сравнение AUC, accuracy, precision, recall и F1</p>
+          </div>
+          <div class="chart-tag">Таблица · Сводные метрики</div>
+        </div>
+        <div class="chart-body">
+          <div id="plot-10" class="plot-container">
+            <table class="metrics-table">
+              <thead>
+                <tr><th>Модель</th><th>AUC</th><th>Accuracy</th><th>Precision</th><th>Recall</th><th>F1</th></tr>
+              </thead>
+              <tbody id="metrics-tbody"></tbody>
+            </table>
+          </div>
+          <!-- PYTHON_INJECT_CHART_10_HERE -->
+        </div>
+      </section>
+
+      <!-- 11. Cumulative LTV -->
+      <section class="chart-section hidden" id="chart-11-cumulative-ltv">
+        <div class="chart-header">
+          <div class="chart-title-block">
+            <h2>Кумулятивный LTV</h2>
+            <p>Накопленный LTV по когортам клиентов</p>
+          </div>
+          <div class="chart-tag">Time series · LTV по когортам</div>
+        </div>
+        <div class="chart-body">
+          <div id="plot-11" class="plot-container"></div>
+          <!-- PYTHON_INJECT_CHART_11_HERE -->
+        </div>
+      </section>
+
+      <!-- 12. Rolling ARPU -->
+      <section class="chart-section hidden" id="chart-12-rolling-arpu">
+        <div class="chart-header">
+          <div class="chart-title-block">
+            <h2>Скользящее среднее ARPU</h2>
+            <p>ARPU и 7‑дневное сглаживание</p>
+          </div>
+          <div class="chart-tag">Time series + сглаживание</div>
+        </div>
+        <div class="chart-body">
+          <div id="plot-12" class="plot-container"></div>
+          <!-- PYTHON_INJECT_CHART_12_HERE -->
+        </div>
+      </section>
+
+      <!-- 13. Churn dynamics -->
+      <section class="chart-section hidden" id="chart-13-churn-dynamics">
+        <div class="chart-header">
+          <div class="chart-title-block">
+            <h2>Динамика оттока по дням</h2>
+            <p>Количество завершённых подписок по датам</p>
+          </div>
+          <div class="chart-tag">Time series · Отток</div>
+        </div>
+        <div class="chart-body">
+          <div id="plot-13" class="plot-container"></div>
+          <!-- PYTHON_INJECT_CHART_13_HERE -->
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<script>
+/* ---------- Navigation ---------- */
+const navItems = document.querySelectorAll('.nav-item');
+const sections = document.querySelectorAll('.chart-section');
+const currentChart = document.getElementById('current-chart');
+
+navItems.forEach(item => {
+  item.addEventListener('click', () => {
+    const targetId = item.dataset.target;
+    navItems.forEach(n => n.classList.remove('active'));
+    item.classList.add('active');
+    sections.forEach(s => s.classList.add('hidden'));
+    const section = document.getElementById(targetId);
+    section.classList.remove('hidden');
+    currentChart.textContent = item.textContent.trim().replace(/^\d+/, '').trim();
+    // resize plotly to fit
+    const plotDiv = section.querySelector('.plot-container');
+    if (plotDiv && plotDiv.data) Plotly.Plots.resize(plotDiv);
+  });
+});
+
+window.addEventListener('resize', () => {
+  sections.forEach(s => {
+    if (!s.classList.contains('hidden')) {
+      const p = s.querySelector('.plot-container');
+      if (p && p.data) Plotly.Plots.resize(p);
+    }
+  });
+});
+
+/* ---------- Plotly base config ---------- */
+const baseLayout = {
+  paper_bgcolor: 'rgba(0,0,0,0)',
+  plot_bgcolor: 'rgba(0,0,0,0)',
+  font: { family: 'Inter, -apple-system, sans-serif', color: '#8b949e', size: 12 },
+  margin: { l: 60, r: 30, t: 30, b: 50 },
+  xaxis: { gridcolor: '#2a313c', linecolor: '#2a313c', zerolinecolor: '#2a313c', tickfont: { color: '#8b949e' } },
+  yaxis: { gridcolor: '#2a313c', linecolor: '#2a313c', zerolinecolor: '#2a313c', tickfont: { color: '#8b949e' } },
+  legend: { font: { color: '#e6edf3' }, bgcolor: 'rgba(0,0,0,0)' },
+  hoverlabel: { bgcolor: '#1c2128', bordercolor: '#3a4250', font: { color: '#e6edf3' } }
+};
+const cfg = { responsive: true, displaylogo: false, displayModeBar: false };
+
+/* ---------- Utils ---------- */
+function gauss(mean, sd) {
+  let u = 0, v = 0;
+  while (u === 0) u = Math.random();
+  while (v === 0) v = Math.random();
+  return mean + sd * Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+}
+function gen(n, m, sd, min=0) { return Array.from({length:n}, () => Math.max(min, gauss(m, sd))); }
+
+const COLORS = {
+  primary: '#4f8cff',
+  purple:  '#8b5cf6',
+  green:   '#3fb950',
+  red:     '#f85149',
+  orange:  '#ff9f43',
+  cyan:    '#22d3ee',
+  pink:    '#ec4899'
+};
+
+/* ---------- 1. Income vs Churn (Box-plot) ---------- */
+Plotly.newPlot('plot-1', [
+  { y: gen(180, 55000, 18000), type: 'box', name: 'Retained', marker: { color: COLORS.green }, boxmean: true },
+  { y: gen(120, 38000, 15000), type: 'box', name: 'Churned',  marker: { color: COLORS.red },   boxmean: true }
+], {
+  ...baseLayout,
+  yaxis: { ...baseLayout.yaxis, title: 'Income, ₽' },
+  xaxis: { ...baseLayout.xaxis, title: 'Churn status' }
+}, cfg);
+
+/* ---------- 2. Plan vs Churn (Stacked bar) ---------- */
+const plans = ['Basic', 'Standard', 'Premium', 'Business', 'Enterprise'];
+Plotly.newPlot('plot-2', [
+  { x: plans, y: [420, 580, 720, 480, 310], type: 'bar', name: 'Retained', marker: { color: COLORS.green } },
+  { x: plans, y: [260, 210, 140, 90, 40],  type: 'bar', name: 'Churned',  marker: { color: COLORS.red } }
+], { ...baseLayout, barmode: 'stack',
+  xaxis: { ...baseLayout.xaxis, title: 'Тарифный план' },
+  yaxis: { ...baseLayout.yaxis, title: 'Количество клиентов' }
+}, cfg);
+
+/* ---------- 3. Income distribution (Histogram + KDE) ---------- */
+const incomeData = gen(2000, 50000, 18000);
+function kde(data, points = 100) {
+  const min = Math.min(...data), max = Math.max(...data);
+  const bw = (max - min) / 30;
+  const xs = Array.from({length: points}, (_, i) => min + (max - min) * i / (points - 1));
+  const ys = xs.map(x => {
+    let s = 0;
+    for (const d of data) {
+      const u = (x - d) / bw;
+      s += Math.exp(-0.5 * u * u);
+    }
+    return s / (data.length * bw * Math.sqrt(2 * Math.PI));
+  });
+  return { xs, ys };
+}
+const k = kde(incomeData);
+Plotly.newPlot('plot-3', [
+  { x: incomeData, type: 'histogram', name: 'Income', histnorm: 'probability density',
+    marker: { color: COLORS.primary, line: { color: '#1a1f27', width: 1 } }, opacity: 0.75, nbinsx: 40 },
+  { x: k.xs, y: k.ys, type: 'scatter', mode: 'lines', name: 'KDE',
+    line: { color: COLORS.orange, width: 2.5 } }
+], { ...baseLayout,
+  xaxis: { ...baseLayout.xaxis, title: 'Income, ₽' },
+  yaxis: { ...baseLayout.yaxis, title: 'Density' }
+}, cfg);
+
+/* ---------- 4. User activity (Histogram, log) ---------- */
+const events = Array.from({length: 3000}, () => Math.round(Math.exp(gauss(3.2, 1.1))));
+Plotly.newPlot('plot-4', [
+  { x: events, type: 'histogram', marker: { color: COLORS.purple, line: { color: '#1a1f27', width: 1 } },
+    nbinsx: 50, name: 'Events' }
+], { ...baseLayout,
+  xaxis: { ...baseLayout.xaxis, title: 'Количество событий', type: 'log' },
+  yaxis: { ...baseLayout.yaxis, title: 'Пользователи' }
+}, cfg);
+
+/* ---------- 5. Correlation Heatmap ---------- */
+const corrLabels = ['income', 'events', 'purchases', 'recency', 'frequency', 'monetary'];
+const corrZ = [
+  [ 1.00,  0.42,  0.58, -0.31,  0.47,  0.71],
+  [ 0.42,  1.00,  0.66, -0.55,  0.78,  0.51],
+  [ 0.58,  0.66,  1.00, -0.48,  0.69,  0.82],
+  [-0.31, -0.55, -0.48,  1.00, -0.62, -0.40],
+  [ 0.47,  0.78,  0.69, -0.62,  1.00,  0.63],
+  [ 0.71,  0.51,  0.82, -0.40,  0.63,  1.00]
+];
+Plotly.newPlot('plot-5', [{
+  z: corrZ, x: corrLabels, y: corrLabels,
+  type: 'heatmap',
+  colorscale: [[0, '#f85149'], [0.5, '#1a1f27'], [1, '#4f8cff']],
+  zmin: -1, zmax: 1,
+  hovertemplate: '%{x} × %{y}: %{z}<extra></extra>',
+  showscale: true,
+  colorbar: { tickfont: { color: '#8b949e' }, outlinewidth: 0 }
+}], { ...baseLayout,
+  margin: { l: 90, r: 40, t: 30, b: 80 },
+  annotations: corrZ.flatMap((row, i) => row.map((v, j) => ({
+    x: corrLabels[j], y: corrLabels[i], text: v.toFixed(2),
+    showarrow: false, font: { color: Math.abs(v) > 0.6 ? '#fff' : '#c9d1d9', size: 11 }
+  })))
+}, cfg);
+
+/* ---------- 6. Events vs Churn (Box) ---------- */
+Plotly.newPlot('plot-6', [
+  { y: Array.from({length:200},()=>Math.round(Math.exp(gauss(3.5,0.9)))), type:'box', name:'Retained', marker:{color:COLORS.green}, boxmean: true },
+  { y: Array.from({length:140},()=>Math.round(Math.exp(gauss(2.4,0.9)))), type:'box', name:'Churned',  marker:{color:COLORS.red},   boxmean: true }
+], { ...baseLayout,
+  yaxis: { ...baseLayout.yaxis, title: 'Количество событий', type: 'log' },
+  xaxis: { ...baseLayout.xaxis, title: 'Churn status' }
+}, cfg);
+
+/* ---------- 7. ROC Curve ---------- */
+function rocCurve(auc) {
+  const n = 100;
+  const xs = [], ys = [];
+  for (let i = 0; i <= n; i++) {
+    const x = i / n;
+    const y = Math.min(1, Math.pow(x, 1 - auc));
+    xs.push(x); ys.push(y);
+  }
+  return { xs, ys };
+}
+const m1 = rocCurve(0.88), m2 = rocCurve(0.82), m3 = rocCurve(0.74);
+Plotly.newPlot('plot-7', [
+  { x: m1.xs, y: m1.ys, mode: 'lines', name: 'Random Forest (AUC=0.88)', line: { color: COLORS.primary, width: 3 } },
+  { x: m2.xs, y: m2.ys, mode: 'lines', name: 'Gradient Boosting (AUC=0.82)', line: { color: COLORS.purple, width: 3 } },
+  { x: m3.xs, y: m3.ys, mode: 'lines', name: 'Logistic Reg. (AUC=0.74)', line: { color: COLORS.orange, width: 3 } },
+  { x: [0,1], y: [0,1], mode: 'lines', name: 'Random', line: { color: '#6e7681', width: 1.5, dash: 'dash' } }
+], { ...baseLayout,
+  xaxis: { ...baseLayout.xaxis, title: 'False Positive Rate', range: [0,1] },
+  yaxis: { ...baseLayout.yaxis, title: 'True Positive Rate', range: [0,1] }
+}, cfg);
+
+/* ---------- 8. Feature Importance ---------- */
+const featNames = ['monetary','frequency','recency','events','income','purchases','plan_premium','tenure_days','support_tickets','age'];
+const featImp = [0.21, 0.18, 0.15, 0.12, 0.10, 0.08, 0.06, 0.05, 0.03, 0.02];
+Plotly.newPlot('plot-8', [{
+  type: 'bar', orientation: 'h',
+  x: featImp.slice().reverse(),
+  y: featNames.slice().reverse(),
+  marker: { color: featImp.slice().reverse(),
+    colorscale: [[0,'#4f8cff'],[1,'#8b5cf6']] },
+  hovertemplate: '%{y}: %{x:.3f}<extra></extra>'
+}], { ...baseLayout,
+  margin: { l: 130, r: 30, t: 30, b: 50 },
+  xaxis: { ...baseLayout.xaxis, title: 'Importance' },
+  yaxis: { ...baseLayout.yaxis }
+}, cfg);
+
+/* ---------- 9. Confusion Matrix ---------- */
+const cmZ = [[842, 58], [73, 327]];
+Plotly.newPlot('plot-9', [{
+  z: cmZ, x: ['Pred: Retained', 'Pred: Churned'], y: ['Actual: Retained', 'Actual: Churned'],
+  type: 'heatmap',
+  colorscale: [[0, '#1a1f27'], [1, '#4f8cff']],
+  hovertemplate: '%{y} / %{x}: %{z}<extra></extra>',
+  colorbar: { tickfont: { color: '#8b949e' }, outlinewidth: 0 }
+}], { ...baseLayout,
+  margin: { l: 140, r: 40, t: 30, b: 80 },
+  annotations: cmZ.flatMap((row, i) => row.map((v, j) => ({
+    x: ['Pred: Retained','Pred: Churned'][j],
+    y: ['Actual: Retained','Actual: Churned'][i],
+    text: '<b>'+v+'</b>', showarrow: false,
+    font: { color: '#fff', size: 18 }
+  })))
+}, cfg);
+
+/* ---------- 10. Metrics Table ---------- */
+const metricsData = [
+  { model: 'Random Forest',     auc: 0.88, acc: 0.89, prec: 0.85, rec: 0.82, f1: 0.83 },
+  { model: 'Gradient Boosting', auc: 0.82, acc: 0.85, prec: 0.81, rec: 0.77, f1: 0.79 },
+  { model: 'Logistic Reg.',     auc: 0.74, acc: 0.78, prec: 0.72, rec: 0.68, f1: 0.70 },
+  { model: 'XGBoost',           auc: 0.86, acc: 0.87, prec: 0.83, rec: 0.80, f1: 0.81 }
+];
+const tbody = document.getElementById('metrics-tbody');
+metricsData.forEach(m => {
+  const row = document.createElement('tr');
+  const cells = ['auc','acc','prec','rec','f1'].map(k =>
+    `<td><div class="metric-bar"><span>${m[k].toFixed(2)}</span><div class="metric-bar-fill"><div style="width:${m[k]*100}%"></div></div></div></td>`
+  ).join('');
+  row.innerHTML = `<td class="model">${m.model}</td>${cells}`;
+  tbody.appendChild(row);
+});
+
+/* ---------- 11. Cumulative LTV ---------- */
+function dateRange(start, days) {
+  const r = []; const d = new Date(start);
+  for (let i = 0; i < days; i++) { r.push(new Date(d).toISOString().slice(0,10)); d.setDate(d.getDate()+1); }
+  return r;
+}
+const ltvDates = dateRange('2024-01-01', 180);
+function cumLTV(base, growth, noise) {
+  const arr = []; let v = 0;
+  for (let i = 0; i < 180; i++) { v += base + i * growth + (Math.random() - 0.5) * noise; arr.push(+v.toFixed(1)); }
+  return arr;
+}
+Plotly.newPlot('plot-11', [
+  { x: ltvDates, y: cumLTV(8, 0.12, 4), name: 'Cohort Jan‑24', mode: 'lines', line: { color: COLORS.primary, width: 2.5 } },
+  { x: ltvDates, y: cumLTV(7, 0.10, 4), name: 'Cohort Feb‑24', mode: 'lines', line: { color: COLORS.purple, width: 2.5 } },
+  { x: ltvDates, y: cumLTV(9, 0.15, 4), name: 'Cohort Mar‑24', mode: 'lines', line: { color: COLORS.cyan, width: 2.5 } },
+  { x: ltvDates, y: cumLTV(6, 0.08, 4), name: 'Cohort Apr‑24', mode: 'lines', line: { color: COLORS.orange, width: 2.5 } }
+], { ...baseLayout,
+  xaxis: { ...baseLayout.xaxis, title: 'Date' },
+  yaxis: { ...baseLayout.yaxis, title: 'Cumulative LTV, ₽' }
+}, cfg);
+
+/* ---------- 12. Rolling ARPU ---------- */
+const arpuDates = dateRange('2024-01-01', 120);
+const arpu = arpuDates.map((_, i) => 250 + 30 * Math.sin(i/12) + (Math.random()-0.5) * 40 + i*0.3);
+function rolling(arr, w) {
+  return arr.map((_, i) => {
+    const s = Math.max(0, i - w + 1);
+    const slice = arr.slice(s, i + 1);
+    return slice.reduce((a,b)=>a+b,0) / slice.length;
+  });
+}
+Plotly.newPlot('plot-12', [
+  { x: arpuDates, y: arpu, mode: 'lines', name: 'ARPU (daily)', line: { color: COLORS.primary, width: 1.5 }, opacity: 0.6 },
+  { x: arpuDates, y: rolling(arpu, 7), mode: 'lines', name: 'ARPU (7d MA)', line: { color: COLORS.orange, width: 3 } }
+], { ...baseLayout,
+  xaxis: { ...baseLayout.xaxis, title: 'Date' },
+  yaxis: { ...baseLayout.yaxis, title: 'ARPU, ₽' }
+}, cfg);
+
+/* ---------- 13. Churn dynamics ---------- */
+const churnDates = dateRange('2024-01-01', 150);
+const churnVals = churnDates.map((_, i) => Math.max(0, Math.round(25 + 6 * Math.sin(i/10) + (Math.random()-0.5) * 8 + (i > 90 ? (i-90)*0.15 : 0))));
+Plotly.newPlot('plot-13', [{
+  x: churnDates, y: churnVals, mode: 'lines', name: 'Churned subscriptions',
+  line: { color: COLORS.red, width: 2.5, shape: 'spline' },
+  fill: 'tozeroy', fillcolor: 'rgba(248, 81, 73, 0.1)'
+}], { ...baseLayout,
+  xaxis: { ...baseLayout.xaxis, title: 'Date' },
+  yaxis: { ...baseLayout.yaxis, title: 'Завершённые подписки' }
+}, cfg);
+</script>
+</body>
+</html>

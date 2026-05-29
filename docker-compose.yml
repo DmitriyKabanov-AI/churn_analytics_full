@@ -1,0 +1,71 @@
+﻿services:
+  postgres:
+    image: postgres:15
+    container_name: churn_postgres
+    environment:
+      POSTGRES_DB: churn_db
+      POSTGRES_USER: churn_user
+      POSTGRES_PASSWORD: churn123
+    ports:
+      - "5435:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init_db.sql:/docker-entrypoint-initdb.d/init_db.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U churn_user -d churn_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  python:
+    build: .
+    container_name: churn_python
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./output:/app/output                     # сохраняем сгенерированные файлы
+      # Опционально: монтируем исходники для разработки (раскомментировать при необходимости)
+      # - ./analytics:/app/analytics
+      # - ./scripts:/app/scripts
+      # - ./template:/app/template
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=churn_db
+      - DB_USER=churn_user
+      - DB_PASSWORD=churn123
+    command: python scripts/run_pipeline.py
+    restart: on-failure
+
+  web:
+    image: nginx:alpine
+    container_name: churn_web
+    ports:
+      - "8080:80"
+    volumes:
+      - ./output:/usr/share/nginx/html:ro
+    depends_on:
+      - python
+    restart: on-failure
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: churn_grafana
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./dashboards:/etc/grafana/provisioning/dashboards
+      - ./datasources:/etc/grafana/provisioning/datasources
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  grafana_data:

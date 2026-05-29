@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Важность признаков | Analytics</title>
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+<style>
+/* ===== Стили только для одного графика (из общего CSS) ===== */
+
+  :root {
+    --bg-primary: #0f1419;
+    --bg-secondary: #161b22;
+    --bg-tertiary: #1c2128;
+    --bg-card: #1a1f27;
+    --border: #2a313c;
+    --border-hover: #3a4250;
+    --text-primary: #e6edf3;
+    --text-secondary: #8b949e;
+    --text-muted: #6e7681;
+    --accent: #4f8cff;
+    --accent-hover: #6ba0ff;
+    --accent-glow: rgba(79, 140, 255, 0.15);
+    --success: #3fb950;
+    --warning: #d29922;
+    --danger: #f85149;
+    --sidebar-width: 280px;
+    --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    --radius: 10px;
+    --shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", Roboto, sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .app { display: flex; min-height: 100vh; }
+
+  /* Sidebar */
+  .sidebar {
+    width: var(--sidebar-width);
+    background: var(--bg-secondary);
+    border-right: 1px solid var(--border);
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    z-index: 10;
+  }
+
+  .sidebar-header {
+    padding: 22px 22px 18px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+
+  .logo-mark {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, var(--accent), #8b5cf6);
+    display: grid; place-items: center;
+    font-weight: 800;
+    color: white;
+    box-shadow: 0 4px 12px var(--accent-glow);
+  }
+
+  .sidebar-subtitle {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 4px;
+    margin-left: 44px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .nav-section {
+    padding: 16px 12px;
+    overflow-y: auto;
+    flex: 1;
+  }
+
+  .nav-section::-webkit-scrollbar { width: 6px; }
+  .nav-section::-webkit-scrollbar-track { background: transparent; }
+  .nav-section::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  .nav-section::-webkit-scrollbar-thumb:hover { background: var(--border-hover); }
+
+  .nav-group-title {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    padding: 12px 12px 8px;
+    font-weight: 600;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    margin: 2px 0;
+    border-radius: 8px;
+    cursor: pointer;
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 500;
+    transition: all var(--transition);
+    border: 1px solid transparent;
+    user-select: none;
+  }
+
+  .nav-item:hover {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    transform: translateX(2px);
+  }
+
+  .nav-item.active {
+    background: var(--accent-glow);
+    color: var(--accent-hover);
+    border-color: rgba(79, 140, 255, 0.25);
+  }
+
+  .nav-item-num {
+    width: 22px; height: 22px;
+    border-radius: 6px;
+    background: var(--bg-tertiary);
+    display: grid; place-items: center;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    flex-shrink: 0;
+    transition: all var(--transition);
+  }
+
+  .nav-item:hover .nav-item-num { background: var(--bg-primary); color: var(--text-primary); }
+  .nav-item.active .nav-item-num { background: var(--accent); color: white; }
+
+  .sidebar-footer {
+    padding: 14px 22px;
+    border-top: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  /* Main */
+  .main {
+    flex: 1;
+    margin-left: var(--sidebar-width);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  .topbar {
+    padding: 18px 32px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(15, 20, 25, 0.85);
+    backdrop-filter: blur(10px);
+    position: sticky; top: 0;
+    z-index: 5;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .breadcrumb {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .breadcrumb span { color: var(--text-primary); font-weight: 500; }
+
+  .top-actions { display: flex; gap: 8px; }
+  .pill {
+    padding: 6px 12px;
+    border-radius: 20px;
+    background: var(--bg-tertiary);
+    font-size: 11px;
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .pill .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--success);
+    box-shadow: 0 0 8px var(--success);
+  }
+
+  .content {
+    padding: 28px 32px 40px;
+  }
+
+  /* Chart sections */
+  .chart-section {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    animation: fadeIn 0.35s ease;
+  }
+
+  .chart-section.hidden { display: none; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .chart-header {
+    padding: 20px 24px 14px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .chart-title-block h2 {
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin-bottom: 4px;
+  }
+
+  .chart-title-block p {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  .chart-tag {
+    padding: 4px 10px;
+    border-radius: 6px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--text-secondary);
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  .chart-body {
+    padding: 16px 16px 12px;
+    min-height: 460px;
+  }
+
+  .plot-container {
+    width: 100%;
+    min-height: 440px;
+  }
+
+  /* Metrics table */
+  .metrics-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 8px;
+    font-size: 13px;
+  }
+  .metrics-table th, .metrics-table td {
+    padding: 14px 18px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  .metrics-table th {
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .metrics-table tr:hover td { background: rgba(79, 140, 255, 0.04); }
+  .metrics-table td.model { font-weight: 600; color: var(--text-primary); }
+  .metric-bar {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .metric-bar-fill {
+    width: 60px; height: 4px;
+    background: var(--bg-tertiary);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .metric-bar-fill > div {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), #8b5cf6);
+    border-radius: 2px;
+  }
+
+  @media (max-width: 900px) {
+    :root { --sidebar-width: 100%; }
+    .sidebar { position: relative; height: auto; max-height: 280px; }
+    .main { margin-left: 0; }
+    .app { flex-direction: column; }
+  }
+
+</style>
+</head>
+<body>
+<div class="chart-container">
+  <div class="chart-header">
+    <div class="chart-title-block">
+      <h2>Важность признаков</h2>
+      <p>Feature importance Random Forest</p>
+    </div>
+    <div class="chart-tag">Bar (горизонт.) · RF importance</div>
+  </div>
+  <div class="chart-body">
+    <div id="plot-8" class="plot-container"></div>
+  </div>
+</div>
+<script>
+// СЮДА БУДЕТ ВСТАВЛЕН JSON ГРАФИКА (через generate_html или save_chart_json)
+// PLACEHOLDER_FOR_PLOTLY_SCRIPT
+</script>
+</body>
+</html>
